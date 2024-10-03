@@ -8,7 +8,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
       - run: docker build -t cygnetops/react-test -f Dockerfile.dev .
       - run: docker run -e CI=true cygnetops/react-test npm test
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+          application_name: docker-gh
+          environment_name: Dockergh-env
+          existing_bucket_name: elasticbeanstalk-eu-west-1-390465701574
+          region: eu-west-1
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
